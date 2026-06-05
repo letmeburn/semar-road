@@ -1,7 +1,7 @@
-# Pelopor-Maps
+# semar road
 **Semarang Command Center V1**
 
-Pelopor-Maps adalah aplikasi pemantauan dan visualisasi laporan lalu lintas berbasis peta interaktif untuk mendukung Lomba Pemilihan Pelajar Pelopor Tingkat Kota Semarang Tahun 2026. Aplikasi ini menampilkan data laporan dalam bentuk visual yang lebih cepat dibaca, lebih mudah dipetakan, dan lebih efisien dibandingkan kumpulan data teks yang panjang.
+semar road adalah aplikasi pemantauan dan visualisasi laporan lalu lintas berbasis peta interaktif untuk Lomba Pemilihan Pelajar Pelopor Tingkat Kota Semarang Tahun 2026. Aplikasi ini menampilkan data laporan dalam bentuk visual yang lebih cepat dibaca, lebih mudah dipetakan, dan lebih efisien dibandingkan kumpulan data teks yang panjang.
 
 ## Tujuan Pembuatan
 Aplikasi ini dibuat karena data laporan dalam bentuk teks sering kali terlalu banyak, berulang, dan memakan waktu untuk dianalisis. Dengan tampilan visual berupa peta, marker, heatmap, dan statistik ringkas, pengguna dapat langsung memahami lokasi masalah, tingkat prioritas, serta status penanganan tanpa harus membaca satu per satu laporan teks yang panjang. Cara ini membantu mengurangi duplikasi informasi, mempercepat pengambilan keputusan, dan membuat analisis data jauh lebih efektif.
