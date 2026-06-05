@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pelopor-Maps: Semarang Command Center V3</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="styles.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+                        danger: { 50: '#fef2f2', 100: '#fee2e2', 500: '#ef4444', 600: '#dc2626' },
+                        warning: { 50: '#fffbeb', 100: '#fef3c7', 500: '#f59e0b', 600: '#d97706' },
+                        success: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669' }
+                    },
+                    boxShadow: {
+                        soft: '0 10px 30px rgba(15, 23, 42, 0.08)'
+                    },
+                    keyframes: {
+                        slideInLeft: {
+                            '0%': { transform: 'translateX(-24px)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' }
+                        }
+                    },
+                    animation: {
+                        slideInLeft: 'slideInLeft 0.2s ease-out'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            overflow: hidden;
+            background: #f8fafc;
+            font-family: Inter, sans-serif;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #sidebar {
+            will-change: transform;
+        }
+
+        #hamburger-btn {
+            position: relative;
+            z-index: 60;
+            pointer-events: auto;
+        }
+
+        .hamburger-active {
+            background: rgb(37 99 235) !important;
+            color: white !important;
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden text-slate-800">
+
+    <div id="mobile-overlay"
+         class="fixed inset-0 bg-slate-900/50 z-20 hidden lg:hidden backdrop-blur-sm transition-opacity"
+         onclick="toggleSidebar(false)"></div>
+
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 flex flex-col z-30 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 shadow-2xl">
+        <div class="h-16 lg:h-20 flex items-center px-6 border-b border-slate-800 bg-slate-950 shrink-0 justify-between">
+            <div class="flex items-center">
+                <div class="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-brand-500 to-blue-700 rounded-xl flex items-center justify-center mr-3 shadow-lg shadow-brand-500/20">
+                    <i class="fa-solid fa-satellite-dish text-white text-sm lg:text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-base lg:text-lg font-bold tracking-wider leading-tight text-white">SEMAR <span class="text-brand-500">ROAD</span></h1>
+                </div>
+            </div>
+
+            <button class="lg:hidden text-slate-400 hover:text-white" onclick="toggleSidebar(false)">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <nav class="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto scrollbar-thin">
+            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Pantauan Live</p>
+
+            <button onclick="switchView('dashboard')" id="btn-dashboard"
+                    class="menu-btn w-full flex items-center px-4 py-3 bg-brand-600 text-white rounded-xl font-medium shadow-md shadow-brand-500/20 transition-all text-sm">
+                <i class="fa-solid fa-map-location-dot w-6 text-center"></i> Peta Interaktif
+            </button>
+
+            <button onclick="switchView('verifikasi')" id="btn-verifikasi"
+                    class="menu-btn w-full flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all text-sm group">
+                <i class="fa-solid fa-clipboard-check w-6 text-center group-hover:text-brand-400 transition-colors"></i>
+                Verifikasi Laporan
+                <span class="ml-auto bg-danger-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">5 Baru</span>
+            </button>
+
+            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-6 mb-2">Data & Statistik</p>
+
+            <button onclick="switchView('kecamatan')" id="btn-kecamatan"
+                    class="menu-btn w-full flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all text-sm group">
+                <i class="fa-solid fa-chart-pie w-6 text-center text-success-500 group-hover:text-success-400"></i>
+                Data Kecamatan
+            </button>
+        </nav>
+
+        <div class="p-4 bg-slate-950 border-t border-slate-800 shrink-0">
+            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer select-none">
+                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=100&q=80" alt="Admin" class="w-10 h-10 rounded-full border border-slate-600 object-cover shrink-0">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-white truncate">Budi Santoso</p>
+                    <p class="text-[11px] text-brand-400 truncate">Kepala Shift Dishub</p>
+                </div>
+                <i class="fa-solid fa-gear text-slate-500 text-sm hover:text-white transition-colors shrink-0"></i>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full relative w-full min-w-0 lg:pl-64">
+
+        <header class="sticky top-0 z-40 h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center shrink-0 shadow-sm w-full">
+            <div class="w-full h-full flex items-center justify-between px-3 sm:px-4 lg:px-8">
+                <div class="flex items-center gap-3 min-w-0">
+                    <button id="hamburger-btn"
+                            onclick="toggleSidebar()"
+                            class="lg:hidden w-11 h-11 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-all duration-200 shrink-0">
+                        <i class="fa-solid fa-bars text-base"></i>
+                    </button>
+
+                    <div class="min-w-0">
+                        <h2 id="header-title" class="text-lg lg:text-xl font-bold text-slate-800 leading-none truncate">
+                            Live Traffic
+                        </h2>
+                        <div class="flex items-center mt-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2"></span>
+                            <p class="text-sm text-slate-500 font-medium">Sistem Online</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 lg:gap-6 shrink-0">
+                    <button onclick="simulasikanLaporanMasuk()"
+                            class="px-4 lg:px-6 py-3 bg-slate-900 hover:bg-blue-600 text-white rounded-xl font-semibold transition-all duration-300 flex items-center gap-3 shadow-md">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span class="hidden md:inline">Simulasi Warga Lapor</span>
+                    </button>
+
+                    <div class="hidden lg:block w-px h-10 bg-slate-200"></div>
+
+                    <div class="hidden sm:block">
+                        <p id="current-time" class="font-mono text-2xl font-bold text-slate-800">00:44 WIB</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto bg-slate-50 p-4 lg:p-6 scroll-smooth scrollbar-thin">
+
+            <div id="view-dashboard" class="view-section active space-y-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <p class="text-[11px] lg:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Laporan Hari Ini</p>
+                        <div class="flex items-end justify-between">
+                            <h4 class="text-2xl lg:text-3xl font-black text-slate-800" id="stat-today">1,204</h4>
+                            <div class="w-8 h-8 rounded-full bg-danger-50 text-danger-500 flex items-center justify-center mb-1"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <p class="text-[11px] lg:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Pelopor Aktif</p>
+                        <div class="flex items-end justify-between">
+                            <h4 class="text-2xl lg:text-3xl font-black text-slate-800">845</h4>
+                            <div class="w-8 h-8 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center mb-1"><i class="fa-solid fa-users-rays"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <p class="text-[11px] lg:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Penyelesaian</p>
+                        <div class="flex items-end justify-between">
+                            <h4 class="text-2xl lg:text-3xl font-black text-slate-800">89%</h4>
+                            <div class="w-8 h-8 rounded-full bg-success-50 text-success-600 flex items-center justify-center mb-1"><i class="fa-solid fa-check-double"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                        <p class="text-[11px] lg:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Mode Peta</p>
+                        <div class="flex bg-slate-100 rounded-lg p-1 mt-1">
+                            <button onclick="toggleMapMode('marker')" id="btn-mode-marker" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-white text-slate-800 shadow-sm transition-all">Titik</button>
+                            <button onclick="toggleMapMode('heat')" id="btn-mode-heat" class="flex-1 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-800 transition-all">Heatmap</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[600px]">
+                    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative h-[400px] lg:h-full">
+                        <div class="absolute top-3 left-3 z-[400] bg-white/90 backdrop-blur-md p-3 rounded-xl shadow border border-slate-200 pointer-events-none">
+                            <div class="space-y-2" id="map-legend">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-danger-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
+                                    <span class="text-[11px] font-bold text-slate-700">Darurat (Merah)</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-warning-500"></span>
+                                    <span class="text-[11px] font-bold text-slate-700">Sedang Ditangani</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="map" class="w-full h-full z-0"></div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[500px] lg:h-full overflow-hidden">
+                        <div class="px-5 py-4 border-b border-slate-100 bg-white flex justify-between items-center shrink-0">
+                            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-rss text-brand-500"></i> Laporan Netizen
+                            </h3>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto p-0 bg-slate-50" id="feed-container">
+                            <div class="bg-white p-4 lg:p-5 border-b border-slate-100 feed-item">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center gap-3">
+                                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80" class="w-9 h-9 rounded-full object-cover">
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-800 leading-none mb-1">Dimas Aditya <i class="fa-solid fa-circle-check text-brand-500 text-[10px]"></i></p>
+                                            <p class="text-[10px] text-slate-500">Tugu Muda • 5 mnt lalu</p>
+                                        </div>
+                                    </div>
+                                    <span class="bg-danger-100 text-danger-600 text-[9px] font-bold px-2 py-0.5 rounded">Prioritas</span>
+                                </div>
+                                <p class="text-[13px] text-slate-700 mt-2 mb-3 leading-relaxed">Banyak motor lawan arah pagi-pagi bikin macet total di lampu merah! Bahaya banget buat pejalan kaki. 😡🚥</p>
+                                <img src="16.jpg" class="w-full h-36 object-cover rounded-lg mb-3 border border-slate-200" onerror="this.src='https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=600&q=80'">
+                                <div class="flex items-center gap-4 mt-2 pt-2 border-t border-slate-50">
+                                    <button class="flex items-center gap-1.5 text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1.5 rounded-full">
+                                        <i class="fa-solid fa-thumbs-up"></i> 528 Validasi
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-4 lg:p-5 border-b border-slate-100 feed-item">
+                                <div class="flex items-start gap-3 mb-2">
+                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" class="w-9 h-9 rounded-full object-cover">
+                                    <div>
+                                        <p class="text-sm font-bold text-slate-800 leading-none mb-1">Siti Rahmawati</p>
+                                        <p class="text-[10px] text-slate-500">Pandanaran • 12 mnt lalu</p>
+                                    </div>
+                                </div>
+                                <p class="text-[13px] text-slate-700 mt-2 mb-3 leading-relaxed">Mobil parkir sembarangan di jalur sepeda. Udah ada rambu dilarang parkir padahal. Bikin macet lajur kiri. 🤦‍♀️🚴‍♀️</p>
+                                <img src="17.jpg" class="w-full h-36 object-cover rounded-lg mb-3 border border-slate-200" onerror="this.src='https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=600&q=80'">
+                                <div class="flex items-center gap-4 mt-2 pt-2 border-t border-slate-50">
+                                    <button class="flex items-center gap-1.5 text-xs font-bold text-warning-600 bg-warning-50 px-3 py-1.5 rounded-full">
+                                        <i class="fa-solid fa-check"></i> 215 Validasi
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-verifikasi" class="view-section space-y-6">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-800">Manajemen Status Laporan</h3>
+                            <p class="text-xs text-slate-500 mt-1">Total 20 laporan. Ubah status penanganan sesuai perkembangan di lapangan.</p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="px-3 py-1 bg-danger-100 text-danger-600 rounded-lg text-xs font-bold">5 Menunggu</span>
+                            <span class="px-3 py-1 bg-warning-100 text-warning-600 rounded-lg text-xs font-bold">5 Proses</span>
+                            <span class="px-3 py-1 bg-success-100 text-success-600 rounded-lg text-xs font-bold">10 Selesai</span>
+                        </div>
+                    </div>
+
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 bg-slate-50/50" id="laporan-grid"></div>
+                </div>
+            </div>
+
+            <div id="view-kecamatan" class="view-section space-y-6">
+                <div class="bg-gradient-to-r from-slate-100 to-slate-50 rounded-2xl p-6 lg:p-8 border-2 border-slate-200 shadow-lg flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div>
+                        <h2 class="text-2xl font-black mb-2 text-slate-900">Data Laporan Per Kecamatan</h2>
+                        <p class="text-slate-700 text-sm max-w-lg font-medium">Statistik lengkap laporan dari 16 kecamatan di Kota Semarang berdasarkan status penanganan terkini.</p>
+                    </div>
+                    <div class="text-center bg-brand-500 p-4 rounded-xl shadow-md border border-brand-600">
+                        <p class="text-xs text-white uppercase font-bold tracking-widest mb-1">Total Laporan Kota</p>
+                        <p class="text-3xl font-black font-mono text-white">3,821</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="kecamatan-grid"></div>
+
+                <div id="modal-kecamatan"
+                     class="fixed inset-x-0 top-16 lg:top-20 bottom-0 z-[9999] hidden bg-slate-900/40 backdrop-blur-sm"
+                     onclick="closeModalKecamatan(event)">
+                    <div class="absolute inset-y-0 left-0 w-full lg:left-64 lg:w-[calc(100%-16rem)] bg-white shadow-2xl overflow-hidden flex flex-col animate-slideInLeft"
+                         onclick="event.stopPropagation()">
+
+                        <div class="px-6 py-4 border-b border-slate-200 bg-brand-500 text-white flex justify-between items-center shrink-0">
+                            <div class="min-w-0">
+                                <h3 class="text-xl font-black truncate" id="modal-kecamatan-title">Kecamatan</h3>
+                                <p class="text-sm text-brand-100 mt-0.5 truncate" id="modal-kecamatan-subtitle">Detail laporan</p>
+                            </div>
+
+                            <button onclick="closeModalKecamatan()"
+                                    class="relative z-[10000] w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors shrink-0 ml-4 pointer-events-auto">
+                                <i class="fa-solid fa-xmark text-xl"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 scrollbar-thin" id="modal-kecamatan-body"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Ringkasan Kota Semarang</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-map-location-dot text-2xl text-slate-600"></i>
+                            </div>
+                            <p class="text-2xl font-black text-slate-800">16</p>
+                            <p class="text-xs text-slate-500 font-semibold">Kecamatan</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-danger-50 flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-clock text-2xl text-danger-500"></i>
+                            </div>
+                            <p class="text-2xl font-black text-danger-600">465</p>
+                            <p class="text-xs text-slate-500 font-semibold">Menunggu</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-warning-50 flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-spinner text-2xl text-warning-500"></i>
+                            </div>
+                            <p class="text-2xl font-black text-warning-600">272</p>
+                            <p class="text-xs text-slate-500 font-semibold">Diproses</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-success-50 flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-circle-check text-2xl text-success-500"></i>
+                            </div>
+                            <p class="text-2xl font-black text-success-600">3,084</p>
+                            <p class="text-xs text-slate-500 font-semibold">Selesai</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+
+    <div id="toast-notif" class="fixed bottom-6 right-6 bg-slate-900 text-white p-4 rounded-xl shadow-2xl flex items-start gap-4 transform translate-y-32 opacity-0 transition-all duration-500 z-[9999] max-w-sm border border-slate-700">
+        <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-white text-lg shrink-0 shadow-[0_0_15px_rgba(59,130,246,0.6)]">
+            <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div>
+            <h4 class="font-bold text-sm text-brand-100">Laporan Darurat Masuk!</h4>
+            <p class="text-xs text-slate-300 mt-1 leading-relaxed">Warga baru saja melaporkan kemacetan parah.</p>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar(force) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            const hamburger = document.getElementById('hamburger-btn');
+
+            if (window.innerWidth >= 1024) return;
+
+            const isOpen = sidebar.classList.contains('translate-x-0');
+            const open = typeof force === 'boolean' ? force : !isOpen;
+
+            if (open) {
+                sidebar.classList.remove('-translate-x-full');
+                sidebar.classList.add('translate-x-0');
+                overlay.classList.remove('hidden');
+                overlay.classList.add('block');
+                hamburger.classList.add('hamburger-active');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                sidebar.classList.remove('translate-x-0');
+                overlay.classList.add('hidden');
+                overlay.classList.remove('block');
+                hamburger.classList.remove('hamburger-active');
+            }
+        }
+
+        function closeModalKecamatan(event) {
+            const modal = document.getElementById('modal-kecamatan');
+            if (event && event.target !== event.currentTarget) return;
+            if (modal) modal.classList.add('hidden');
+        }
+
+        window.addEventListener('resize', () => {
+            const overlay = document.getElementById('mobile-overlay');
+            const sidebar = document.getElementById('sidebar');
+            const hamburger = document.getElementById('hamburger-btn');
+
+            if (window.innerWidth >= 1024) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('block');
+                sidebar.classList.remove('translate-x-0');
+                sidebar.classList.remove('-translate-x-full');
+                hamburger.classList.remove('hamburger-active');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+            }
+        });
+    </script>
+</body>
+</html>
