@@ -1,5 +1,5 @@
 # Pelopor-Maps
-**Semarang Command Center V3**
+**Semarang Command Center V1**
 
 Pelopor-Maps adalah aplikasi pemantauan dan visualisasi laporan lalu lintas berbasis peta interaktif untuk mendukung Lomba Pemilihan Pelajar Pelopor Tingkat Kota Semarang Tahun 2026. Aplikasi ini menampilkan data laporan dalam bentuk visual yang lebih cepat dibaca, lebih mudah dipetakan, dan lebih efisien dibandingkan kumpulan data teks yang panjang.
 
